@@ -1,0 +1,10 @@
+{
+  "name": "c-scanner-js",
+  "version": "1.0.0",
+  "description": "Simple C-like scanner (lexer) in Node.js",
+  "main": "src/main.js",
+  "license": "MIT",
+  "scripts": {
+    "scan": "node src/main.js samples/input.c"
+  }
+}
