@@ -1,24 +1,67 @@
 "use strict";
+const fs = require("fs");
+const path = require("path");
 
-const { TokenType, KeywordMap } = require("./tokenTypes");
+/*----------------------------------------
+  1. تعريف أنواع التوكنز والكلمات المحجوزة
+-----------------------------------------*/
+const TokenType = {
+  IF: "IF",
+  ELSE: "ELSE",
+  INT: "INT",
+  RETURN: "RETURN",
+  FOR: "FOR",
+  WHILE: "WHILE",
+  ID: "ID",
+  INT_LIT: "INT_LIT",
+  FLOAT_LIT: "FLOAT_LIT",
+  ASSIGN: "ASSIGN",
+  EQ: "EQ",
+  NE: "NE",
+  LT: "LT",
+  GT: "GT",
+  LE: "LE",
+  GE: "GE",
+  PLUS: "PLUS",
+  MINUS: "MINUS",
+  STAR: "STAR",
+  SLASH: "SLASH",
+  MOD: "MOD",
+  LPAREN: "LPAREN",
+  RPAREN: "RPAREN",
+  LBRACE: "LBRACE",
+  RBRACE: "RBRACE",
+  LBRACKET: "LBRACKET",
+  RBRACKET: "RBRACKET",
+  SEMI: "SEMI",
+  COMMA: "COMMA",
+  DOT: "DOT",
+  EOF: "EOF",
+};
+const KeywordMap = new Map([
+  ["if", TokenType.IF],
+  ["else", TokenType.ELSE],
+  ["int", TokenType.INT],
+  ["return", TokenType.RETURN],
+  ["for", TokenType.FOR],
+  ["while", TokenType.WHILE],
+]);
 
+/*----------------------------------------
+  2. تعريف كلاس التوكن + كلاس الـ Lexer
+-----------------------------------------*/
 class Token {
   constructor(type, lexeme, line, col) {
     this.type = type;
     this.lexeme = lexeme;
     this.line = line;
-    this.col = col; // starting column
-  }
-  toString() {
-    const lx = this.lexeme == null ? "" : ` "${this.lexeme}"`;
-    return `${this.type}${lx} (${this.line}:${this.col})`;
+    this.col = col;
   }
 }
 
 class Lexer {
   constructor(input) {
     this.input = input;
-    this.len = input.length;
     this.i = 0;
     this.line = 1;
     this.col = 1;
@@ -26,7 +69,7 @@ class Lexer {
 
   peek(n = 0) {
     const idx = this.i + n;
-    return idx >= this.len ? "\0" : this.input[idx];
+    return idx >= this.input.length ? "\0" : this.input[idx];
   }
 
   advance(n = 1) {
@@ -49,35 +92,29 @@ class Lexer {
   isAlpha(ch) {
     return (ch >= "A" && ch <= "Z") || (ch >= "a" && ch <= "z") || ch === "_";
   }
-
   isDigit(ch) {
     return ch >= "0" && ch <= "9";
   }
-
   isAlnum(ch) {
     return this.isAlpha(ch) || this.isDigit(ch);
   }
 
   skipWhitespaceAndComments() {
     for (;;) {
-      // whitespace
       while (/\s/.test(this.peek())) this.advance();
 
-      // line comment //
       if (this.peek() === "/" && this.peek(1) === "/") {
         while (this.peek() !== "\n" && this.peek() !== "\0") this.advance();
         continue;
       }
 
-      // block comment /* ... */
       if (this.peek() === "/" && this.peek(1) === "*") {
         this.advance(2);
         while (true) {
-          if (this.peek() === "\0") {
+          if (this.peek() === "\0")
             throw new Error(
               `Unterminated block comment at ${this.line}:${this.col}`
             );
-          }
           if (this.peek() === "*" && this.peek(1) === "/") {
             this.advance(2);
             break;
@@ -100,17 +137,15 @@ class Lexer {
       this.advance();
     }
     const kwType = KeywordMap.get(s);
-    if (kwType) return this.makeToken(kwType, s, startLine, startCol);
-    return this.makeToken(TokenType.ID, s, startLine, startCol);
+    return this.makeToken(kwType || TokenType.ID, s, startLine, startCol);
   }
 
   readNumber() {
     const startLine = this.line,
       startCol = this.col;
     let s = "";
-    let seenDot = false;
-    let seenExp = false;
-
+    let seenDot = false,
+      seenExp = false;
     const readDigits = () => {
       let had = false;
       while (this.isDigit(this.peek())) {
@@ -121,31 +156,24 @@ class Lexer {
       return had;
     };
 
-    // Leading digits (optional if starts with .)
     const firstIsDigit = this.isDigit(this.peek());
-    if (firstIsDigit) {
-      readDigits();
-    }
+    if (firstIsDigit) readDigits();
 
-    // Decimal point
     if (this.peek() === "." && this.isDigit(this.peek(1))) {
       seenDot = true;
       s += ".";
       this.advance();
       readDigits();
     } else if (!firstIsDigit && this.peek() === ".") {
-      // Lone '.', not a number (handled elsewhere as DOT)
       return null;
     }
 
-    // Exponent part
     if (this.peek() === "e" || this.peek() === "E") {
-      const next = this.peek(1);
-      const next2 = this.peek(2);
-      // require e[+|-]?digit
+      const n1 = this.peek(1),
+        n2 = this.peek(2);
       if (
-        this.isDigit(next) ||
-        ((next === "+" || next === "-") && this.isDigit(next2))
+        this.isDigit(n1) ||
+        ((n1 === "+" || n1 === "-") && this.isDigit(n2))
       ) {
         seenExp = true;
         s += this.peek();
@@ -154,9 +182,8 @@ class Lexer {
           s += this.peek();
           this.advance();
         }
-        if (!readDigits()) {
+        if (!readDigits())
           throw new Error(`Malformed exponent at ${this.line}:${this.col}`);
-        }
       }
     }
 
@@ -182,8 +209,6 @@ class Lexer {
       case ">=":
         this.advance(2);
         return this.makeToken(TokenType.GE, ">=", startLine, startCol);
-      default:
-        break;
     }
 
     const ch = this.peek();
@@ -229,34 +254,36 @@ class Lexer {
   nextToken() {
     this.skipWhitespaceAndComments();
     const ch = this.peek();
-    if (ch === "\0") {
+    if (ch === "\0")
       return this.makeToken(TokenType.EOF, null, this.line, this.col);
-    }
-
-    // Identifier / keyword
-    if (this.isAlpha(ch)) {
-      return this.readIdentifierOrKeyword();
-    }
-
-    // Number (int/float)
+    if (this.isAlpha(ch)) return this.readIdentifierOrKeyword();
     if (this.isDigit(ch) || (ch === "." && this.isDigit(this.peek(1)))) {
       const t = this.readNumber();
       if (t) return t;
     }
-
-    // Operators / punctuation
     return this.readOperatorOrPunct();
   }
 
   scanAll() {
-    const out = [];
+    const tokens = [];
     for (;;) {
       const t = this.nextToken();
-      out.push(t);
+      tokens.push(t);
       if (t.type === TokenType.EOF) break;
     }
-    return out;
+    return tokens;
   }
 }
 
-module.exports = { Lexer, Token };
+/*----------------------------------------
+  3. كود التشغيل الرئيسي
+-----------------------------------------*/
+const file = process.argv[2] || path.join(__dirname, "samples", "input.c");
+const src = fs.readFileSync(file, "utf8");
+const lexer = new Lexer(src);
+const tokens = lexer.scanAll();
+
+for (const t of tokens) {
+  const lexeme = t.lexeme ? `\t"${t.lexeme}"` : "";
+  console.log(`${t.type}${lexeme}\t(${t.line}:${t.col})`);
+}
