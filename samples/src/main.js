@@ -6,91 +6,86 @@ const { Lexer } = require("./lexer");
 const { Parser, ParseError } = require("./parser");
 const { TokenType } = require("./tokenTypes");
 
+// قراءة ملف الإدخال
 const inputPath = process.argv[2] || path.join(__dirname, "..", "input.c");
 const source = fs.readFileSync(inputPath, "utf8");
 
-// Function to convert token type to Python-style format
-function convertTokenType(token) {
+// تحويل نوع الـ token إلى الشكل المطلوب
+function getTokenType(token) {
   const type = token.type;
   const lexeme = token.lexeme || "";
 
   // Keywords
   if (
-    type === TokenType.IF ||
-    type === TokenType.ELSE ||
-    type === TokenType.INT ||
-    type === TokenType.RETURN ||
-    type === TokenType.FOR ||
-    type === TokenType.WHILE
+    [
+      TokenType.IF,
+      TokenType.ELSE,
+      TokenType.INT,
+      TokenType.RETURN,
+      TokenType.FOR,
+      TokenType.WHILE,
+    ].includes(type)
   ) {
-    return ["KEYWORD", lexeme];
+    return "KEYWORD";
   }
-
   // Identifier
-  if (type === TokenType.ID) {
-    return ["IDENTIFIER", lexeme];
-  }
-
+  if (type === TokenType.ID) return "IDENTIFIER";
   // Numeric constants
-  if (type === TokenType.INT_LIT || type === TokenType.FLOAT_LIT) {
-    return ["NUMERIC_CONSTANT", lexeme];
-  }
-
+  if (type === TokenType.INT_LIT || type === TokenType.FLOAT_LIT)
+    return "NUMERIC_CONSTANT";
   // Operators
   if (
-    type === TokenType.PLUS ||
-    type === TokenType.MINUS ||
-    type === TokenType.STAR ||
-    type === TokenType.SLASH ||
-    type === TokenType.MOD ||
-    type === TokenType.ASSIGN ||
-    type === TokenType.EQ ||
-    type === TokenType.NE ||
-    type === TokenType.LT ||
-    type === TokenType.GT ||
-    type === TokenType.LE ||
-    type === TokenType.GE
+    [
+      TokenType.PLUS,
+      TokenType.MINUS,
+      TokenType.STAR,
+      TokenType.SLASH,
+      TokenType.MOD,
+      TokenType.ASSIGN,
+      TokenType.EQ,
+      TokenType.NE,
+      TokenType.LT,
+      TokenType.GT,
+      TokenType.LE,
+      TokenType.GE,
+    ].includes(type)
   ) {
-    return ["OPERATOR", lexeme];
+    return "OPERATOR";
   }
-
   // Special Characters
   if (
-    type === TokenType.LPAREN ||
-    type === TokenType.RPAREN ||
-    type === TokenType.LBRACE ||
-    type === TokenType.RBRACE ||
-    type === TokenType.LBRACKET ||
-    type === TokenType.RBRACKET ||
-    type === TokenType.SEMI ||
-    type === TokenType.COMMA ||
-    type === TokenType.DOT
+    [
+      TokenType.LPAREN,
+      TokenType.RPAREN,
+      TokenType.LBRACE,
+      TokenType.RBRACE,
+      TokenType.LBRACKET,
+      TokenType.RBRACKET,
+      TokenType.SEMI,
+      TokenType.COMMA,
+      TokenType.DOT,
+    ].includes(type)
   ) {
-    return ["Special_Character", lexeme];
+    return "Special_Character";
   }
+  // EOF - نتخطاه
+  if (type === TokenType.EOF) return null;
 
-  // EOF - skip it (Python project doesn't print it)
-  if (type === TokenType.EOF) {
-    return null;
-  }
-
-  return [type, lexeme];
+  return type;
 }
 
-// 1) Lexical analysis
+// المسح (Lexical Analysis)
 const lexer = new Lexer(source);
 const tokens = lexer.scanAll();
 
-// اطبع التوكنز لو حابب تتأكد
-console.log("=== TOKENS ===");
-for (const t of tokens) {
-  const converted = convertTokenType(t);
-  if (converted) {
-    console.log(`('${converted[0]}', '${converted[1]}')`);
+// طباعة الـ tokens
+for (const token of tokens) {
+  const tokenType = getTokenType(token);
+  if (tokenType) {
+    console.log(`('${tokenType}', '${token.lexeme || ""}')`);
   }
 }
 
-// 2) Parsing (Top-Down / Recursive Descent)
 console.log("\n=== PARSE RESULT ===");
 let parser;
 try {
@@ -101,16 +96,7 @@ try {
 } catch (e) {
   if (e instanceof ParseError) {
     console.error("Parse error:", e.message);
-    if (parser && parser.peek()) {
-      console.error(
-        `Current token: ${parser.peek().type} "${parser.peek().lexeme}" at (${
-          parser.peek().line
-        }:${parser.peek().col})`
-      );
-    }
   } else {
     console.error("Unexpected error:", e);
-    console.error(e.stack);
   }
-  process.exit(1);
 }
