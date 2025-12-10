@@ -1,6 +1,39 @@
 "use strict";
 
-const { TokenType } = require("./tokenTypes");
+// TokenType definition (same as in main.js)
+const TokenType = {
+  IF: "IF",
+  ELSE: "ELSE",
+  INT: "INT",
+  RETURN: "RETURN",
+  FOR: "FOR",
+  WHILE: "WHILE",
+  ID: "ID",
+  INT_LIT: "INT_LIT",
+  FLOAT_LIT: "FLOAT_LIT",
+  ASSIGN: "ASSIGN",
+  EQ: "EQ",
+  NE: "NE",
+  LT: "LT",
+  GT: "GT",
+  LE: "LE",
+  GE: "GE",
+  PLUS: "PLUS",
+  MINUS: "MINUS",
+  STAR: "STAR",
+  SLASH: "SLASH",
+  MOD: "MOD",
+  LPAREN: "LPAREN",
+  RPAREN: "RPAREN",
+  LBRACE: "LBRACE",
+  RBRACE: "RBRACE",
+  LBRACKET: "LBRACKET",
+  RBRACKET: "RBRACKET",
+  SEMI: "SEMI",
+  COMMA: "COMMA",
+  DOT: "DOT",
+  EOF: "EOF",
+};
 
 class ParseError extends Error {
   constructor(message, token) {
