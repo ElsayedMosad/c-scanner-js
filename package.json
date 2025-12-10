@@ -5,6 +5,10 @@
   "main": "src/main.js",
   "license": "MIT",
   "scripts": {
+<<<<<<< HEAD
     "scan": "node samples/src/main.js samples/input.c"
+=======
+    "scan": "node src/main.js samples/input.c"
+>>>>>>> 687b8dbaeced244db7cceb4f9e33a00b78cb13eb
   }
 }
